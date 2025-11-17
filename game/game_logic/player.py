@@ -11,16 +11,14 @@ class Player:
             self.surf = sprite_surf
         self.rect = self.surf.get_rect(center=pos)
 
-        # Física
         self.vel_y = 0.0
         self.on_ground = False
 
-        # AI (patrulla)
         self.ai_enabled = False
-        self.ai_dir = 1              # 1= derecha, -1= izquierda
+        self.ai_dir = 1              
         self.ai_timer = 0.0
-        self.ai_period = 2.0         # cambia de dirección cada ~2s (si no hay colisiones)
-        self.ai_jump_cooldown = 0.0  # evita saltar cada frame
+        self.ai_period = 2.0         
+        self.ai_jump_cooldown = 0.0  
 
     def set_ai(self, enabled: bool):
         self.ai_enabled = enabled
@@ -28,7 +26,7 @@ class Player:
     def _axis_input(self):
         keys = pygame.key.get_pressed()
         vx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT])
-        vy = (keys[pygame.K_DOWN]  - keys[pygame.K_UP])  # no usado en plataforma
+        vy = (keys[pygame.K_DOWN]  - keys[pygame.K_UP])  
         jump = keys[pygame.K_SPACE]
         return vx, jump
 
@@ -44,7 +42,7 @@ class Player:
                     self.rect.bottom = ob.top
                     self.vel_y = 0.0
                     self.on_ground = True
-                elif self.vel_y < 0:    # subiendo y pega techo
+                elif self.vel_y < 0:    # subiendo y pega contra el techo
                     self.rect.top = ob.bottom
                     self.vel_y = 0.0
 
@@ -54,7 +52,7 @@ class Player:
             if self.rect.colliderect(ob):
                 if vx > 0: self.rect.right = ob.left
                 elif vx < 0: self.rect.left = ob.right
-                return True  # hubo colisión en X
+                return True  # colisoin en el eje x
         return False
 
     def update(self, dt, speed, obstacles):
@@ -63,7 +61,7 @@ class Player:
 
         collided_x = self._move_horizontal(vx, dt, speed, obstacles)
 
-        # salto manual
+        # salto 
         if jump and self.on_ground:
             self.vel_y = -600.0
             self.on_ground = False
@@ -72,16 +70,16 @@ class Player:
 
     def update_ai(self, dt, speed, obstacles):
         """Movimiento automático sencillo (patrulla + salto ante obstáculos)."""
-        # enfriar salto
+        
         if self.ai_jump_cooldown > 0.0:
             self.ai_jump_cooldown -= dt
 
-        # cambia de dirección cada cierto tiempo aleatoriamente (si va libre)
+        # cambia de dirección cada cierto tiempo aleatoriamente 
         self.ai_timer += dt
         if self.ai_timer >= self.ai_period:
             self.ai_timer = 0.0
-            # 30% de probabilidad de invertir dirección sin motivo, para variedad
-            if random.random() < 0.3:
+            
+            if random.random() < 0.4: #cambio de direccion al azar
                 self.ai_dir *= -1
 
 
@@ -94,30 +92,28 @@ class Player:
             self.ai_dir = -1
 
 
-        # intenta moverse horizontalmente
         collided_x = self._move_horizontal(self.ai_dir, dt, speed, obstacles)
 
-        # detección de borde: mira si hay "suelo" unos píxeles por delante
+        # detección de borde
         ahead_offset = 20 * self.ai_dir
         probe = self.rect.move(ahead_offset, 2)
         is_edge = True
         for ob in obstacles:
-            # hay suelo si justo debajo de nuestro borde adelantado toca una plataforma
+            
             if probe.move(0, 10).colliderect(ob):
                 is_edge = False
                 break
 
-        # lógica de salto/evitación
         if (collided_x or is_edge) and self.on_ground and self.ai_jump_cooldown <= 0.0:
-            # intenta saltar el obstáculo o el hueco
+            
+            #salto para no caer
             self.vel_y = -600.0
             self.on_ground = False
-            self.ai_jump_cooldown = 0.6  # 600 ms antes de volver a saltar
+            self.ai_jump_cooldown = 0.6  
         elif collided_x and not self.on_ground:
-            # si está en el aire y chocó (rara vez), invierte dirección para no quedarse pegado
+            #si choca con algo, dar la vuelta
             self.ai_dir *= -1
 
-        # aplica gravedad / colisión vertical
         self._apply_gravity_and_vertical(dt, obstacles)
 
     def draw(self, screen):

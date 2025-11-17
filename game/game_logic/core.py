@@ -5,25 +5,33 @@ from pathlib import Path
 from .settings import WIDTH, HEIGHT, FPS, PLAYER_SPEED, BG_COLOR, OBSTACLE_COLOR
 from .player import Player
 
-# -------------------- utilidades --------------------
-
 def load_sprite_if_exists():
     try:
         project_root = Path(__file__).resolve().parents[2]
-        sprite_path = project_root / "sprites" / "player.png"
+        # si lo tienes en game/sprites:
+        sprite_path = project_root / "game" / "sprites" / "player.png"
+        # o, si lo moviste, descomenta esta:
+        # sprite_path = project_root / "sprites" / "player.png"
+
         if sprite_path.exists():
-            return pygame.image.load(sprite_path.as_posix()).convert_alpha()
-    except Exception:
-        pass
+            surf = pygame.image.load(sprite_path.as_posix()).convert_alpha()
+
+            # --- ESCALADO DEL SPRITE ---
+            max_height = 64   # prueba con 48 o 32 si lo quieres más pequeño
+            w, h = surf.get_size()
+            if h > max_height:
+                scale = max_height / h
+                new_size = (int(w * scale), int(h * scale))
+                surf = pygame.transform.smoothscale(surf, new_size)
+            # ---------------------------
+
+            return surf
+    except Exception as e:
+        print("Error al cargar sprite:", e)
     return None
 
+
 def upscale_surface(surface, scale_factor=2.0, method="bilinear"):
-    """
-    Reescala una Surface. Métodos:
-      - "native": no reescala
-      - "nearest" / "bilinear" / "bicubic" (OpenCV)
-      - "smooth": pygame.transform.smoothscale (bilinear pygame)
-    """
     if method == "native" or abs(scale_factor - 1.0) < 1e-6:
         return surface
 
@@ -31,15 +39,15 @@ def upscale_surface(surface, scale_factor=2.0, method="bilinear"):
     new_size = (int(w * scale_factor), int(h * scale_factor))
 
     if method in ("nearest", "bilinear", "bicubic"):
-        arr = pygame.surfarray.array3d(surface)      # (w,h,3)
-        arr = np.transpose(arr, (1, 0, 2))           # -> (h,w,3)
+        arr = pygame.surfarray.array3d(surface)      
+        arr = np.transpose(arr, (1, 0, 2))         
         interp = {
             "nearest":  cv2.INTER_NEAREST,
             "bilinear": cv2.INTER_LINEAR,
             "bicubic":  cv2.INTER_CUBIC
         }[method]
         resized = cv2.resize(arr, new_size, interpolation=interp)
-        resized = np.transpose(resized, (1, 0, 2))   # -> (w,h,3)
+        resized = np.transpose(resized, (1, 0, 2))   
         return pygame.surfarray.make_surface(resized)
 
     return pygame.transform.smoothscale(surface, new_size)
@@ -48,11 +56,6 @@ def save_surface_png(surface, path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     pygame.image.save(surface, str(path))
 
-
-
-
-
-# -------------------- juego principal --------------------
 
 class App:
     def __init__(self):
@@ -71,38 +74,36 @@ class App:
         self.method = "bilinear"   # "native" | "nearest" | "bilinear" | "bicubic" | "smooth"
         self.scale_factor = 2.0
 
-        # Player
         sprite = load_sprite_if_exists()
         self.player = Player((WIDTH//2, HEIGHT//2), sprite_surf=sprite)
 
         # Obstáculos
-                # --- MAPA DE PLATAFORMAS PARA IA ---
         ground_h = 30
 
         self.obstacles = []
 
-        # Piso principal con un gran hueco en el centro
+        # Piso principal 
         self.obstacles.append(pygame.Rect(0, HEIGHT - ground_h, WIDTH // 3, ground_h))            # tramo izquierda
         self.obstacles.append(pygame.Rect(WIDTH // 3 + 150, HEIGHT - ground_h, WIDTH // 3, ground_h))  # tramo centro-derecha
         self.obstacles.append(pygame.Rect(2 * WIDTH // 3 + 80, HEIGHT - ground_h, WIDTH // 17, ground_h))    # tramo derecha
 
-        # Plataformas bajas (para que la IA suba/baje)
+        # Plataformas bajas
         self.obstacles.append(pygame.Rect(50, HEIGHT - 170, 180, 20))
         self.obstacles.append(pygame.Rect(300, HEIGHT - 210, 160, 20))
         self.obstacles.append(pygame.Rect(550, HEIGHT - 150, 180, 20))
 
         # Plataformas más altas
-        # self.obstacles.append(pygame.Rect(0, HEIGHT - 290, 150, 15))
+        self.obstacles.append(pygame.Rect(0, HEIGHT - 290, 150, 15))
         
-        moving_platform = {
-            "rect": pygame.Rect(0, HEIGHT - 290, 150, 15),
-            "vel": 120,               # velocidad vertical en píxeles/s
-            "min_y": HEIGHT - 350,    # límite superior
-            "max_y": HEIGHT - 250,    # límite inferior
-            "type": "moving"
-        }
+        # moving_platform = {
+        #     "rect": pygame.Rect(10, HEIGHT - 290, 150, 15),
+        #     "vel": 120,               # velocidad vertical en píxeles/s
+        #     "min_y": HEIGHT - 350,    # límite superior
+        #     "max_y": HEIGHT - 250,    # límite inferior
+        #     "type": "moving"
+        # }
 
-        self.obstacles.append(moving_platform)
+        # self.obstacles.append(moving_platform)
 
         self.obstacles.append(pygame.Rect(500, HEIGHT - 350, 170, 20))
 
@@ -120,8 +121,7 @@ class App:
         self.record = False
         self.frame_id = 0
         self.data_root = Path(__file__).resolve().parents[2] / "data"
-        # data/lr -> baja resolución (scene)
-        # data/sr_classic -> upscaling clásico (para baseline)
+        
 
         self.running = True
 
@@ -164,14 +164,16 @@ class App:
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     self.running = False
-                # Toggle AI
+                
+                # movimiento automatico 
                 elif e.key == pygame.K_a:
                     self.auto_move = not self.auto_move
                     self.player.set_ai(self.auto_move)
-                # Toggle grabación
+                
+                #captura del juego
                 elif e.key == pygame.K_r:
                     self.record = not self.record
-                # Métodos en vivo
+                
                 elif e.key == pygame.K_0:
                     self.method = "native"
                 elif e.key == pygame.K_1:
@@ -182,17 +184,15 @@ class App:
                     self.method = "bicubic"
                 elif e.key == pygame.K_4:
                     self.method = "smooth"
-                # Factor en vivo
+                
                 elif e.key in (pygame.K_RIGHTBRACKET, pygame.K_PLUS):
                     self.scale_factor = min(self.scale_factor + 0.25, 4.0)
                 elif e.key in (pygame.K_LEFTBRACKET, pygame.K_MINUS):
                     self.scale_factor = max(self.scale_factor - 0.25, 0.5)
 
     def _update(self, dt):
-        # primero actualizamos plataformas móviles
         self._update_moving_platforms(dt)
 
-        # extraemos solo rectángulos para colisiones del player
         obstacle_rects = self._extract_rects()
 
         if self.auto_move:
@@ -202,7 +202,7 @@ class App:
 
 
     def _draw(self):
-        # Dibuja la escena base (LR)
+        # Dibuja la escena 
         self.scene_surface.fill(BG_COLOR)
         for ob in self.obstacles:
             rect = ob["rect"] if isinstance(ob, dict) else ob
@@ -223,10 +223,9 @@ class App:
             txt = self.font.render(line, True, (230,230,240))
             self.scene_surface.blit(txt, (20, 20 + i*22))
 
-        # Reescalado EN VIVO para mostrar
+        # Reescalado en tiempo real
         up = upscale_surface(self.scene_surface, self.scale_factor, self.method)
 
-        # Centrado en ventana
         win_w, win_h = self.window.get_size()
         up_w, up_h = up.get_size()
         x = (win_w - up_w) // 2
@@ -235,13 +234,10 @@ class App:
         self.window.blit(up, (x, y))
         pygame.display.flip()
 
-        # --- Grabación opcional (genera dataset) ---
         if self.record:
-            # Guarda LR (scene) como data/lr/000001.png
             lr_path = self.data_root / "lr" / f"{self.frame_id:06d}.png"
             save_surface_png(self.scene_surface, lr_path)
 
-            # Genera baseline clásico (por defecto bicubico) y guarda en sr_classic
             sr_classic = upscale_surface(self.scene_surface, self.scale_factor, "bicubic")
             sr_path = self.data_root / "sr_classic" / f"{self.frame_id:06d}.png"
             save_surface_png(sr_classic, sr_path)
