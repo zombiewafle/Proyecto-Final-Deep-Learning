@@ -1,0 +1,7 @@
+# resolución para capturar los HR
+WIDTH, HEIGHT = 1920, 720 
+FPS = 60
+
+PLAYER_SPEED = 300
+BG_COLOR = (20,20,20)
+OBSTACLE_COLOR = (90,90,110)
