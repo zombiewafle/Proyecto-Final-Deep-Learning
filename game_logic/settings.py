@@ -1,5 +1,5 @@
 # resolución para capturar los HR
-WIDTH, HEIGHT = 1920, 720 
+WIDTH, HEIGHT = 640, 240 
 FPS = 60
 
 PLAYER_SPEED = 300

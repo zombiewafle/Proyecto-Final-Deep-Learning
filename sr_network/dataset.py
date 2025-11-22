@@ -12,12 +12,10 @@ class ImageDataset(Dataset):
     Clase para cargar los pares de imágenes LR y HR.
     """
     def __init__(self, hr_dir, lr_dir):
-        # Buscamos todas las imágenes .png en las carpetas
         self.hr_files = sorted(glob.glob(hr_dir + "/*.png"))
         self.lr_files = sorted(glob.glob(lr_dir + "/*.png"))
         
         # Normalizador para las imágenes (ajusta los valores de píxeles a [-1, 1])
-        # Esto es muy importante para la estabilidad del entrenamiento de las GANs.
         self.normalizer = Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 
     def __len__(self):

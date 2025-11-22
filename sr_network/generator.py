@@ -12,13 +12,12 @@ class ResidualBlock(nn.Module):
         self.conv_block = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(in_channels),
-            nn.PReLU(),  # Activation function similar to ReLU but can learn
+            nn.PReLU(),  
             nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(in_channels),
         )
 
     def forward(self, x):
-        # La "conexión residual": suma la entrada original a la salida del bloque.
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
@@ -55,7 +54,7 @@ class Generator(nn.Module):
         # 5. Capa de salida: Convierte las características a una imagen RGB Y asegura el rango [-1, 1]
         self.conv_final = nn.Sequential(
             nn.Conv2d(64, out_channels, kernel_size=9, stride=1, padding=4),
-            nn.Tanh()  # <--- ¡ESTE ES EL CAMBIO!
+            nn.Tanh()  
         )
 
 
@@ -64,7 +63,6 @@ class Generator(nn.Module):
         out_residual = self.body(out_initial)
         out_post = self.conv_post_residual(out_residual)
         
-        # Combina la salida inicial con la procesada
         out = self.upsample(out_initial + out_post)
         out = self.conv_final(out)
         return out

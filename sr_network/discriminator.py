@@ -1,5 +1,3 @@
-# sr_network/discriminator.py
-
 import torch.nn as nn
 
 class Discriminator(nn.Module):
@@ -44,6 +42,4 @@ class Discriminator(nn.Module):
     def forward(self, img):
         features = self.blocks(img)
         validity = self.classifier(features)
-        # La salida es un tensor. No se aplica Sigmoid aquí para mayor estabilidad
-        # al usar BCEWithLogitsLoss durante el entrenamiento.
         return validity

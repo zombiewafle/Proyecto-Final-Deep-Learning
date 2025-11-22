@@ -20,9 +20,9 @@ def load_sprite_if_exists():
 def upscale_surface(surface, scale_factor=2.0, method="bilinear"):
     """
     Reescala una Surface. Métodos:
-      - "native": no reescala
-      - "nearest" / "bilinear" / "bicubic" (OpenCV)
-      - "smooth": pygame.transform.smoothscale (bilinear pygame)
+        - "native": no reescala
+        - "nearest" / "bilinear" / "bicubic" (OpenCV)
+        - "smooth": pygame.transform.smoothscale (bilinear pygame)
     """
     if method == "native" or abs(scale_factor - 1.0) < 1e-6:
         return surface
@@ -31,15 +31,15 @@ def upscale_surface(surface, scale_factor=2.0, method="bilinear"):
     new_size = (int(w * scale_factor), int(h * scale_factor))
 
     if method in ("nearest", "bilinear", "bicubic"):
-        arr = pygame.surfarray.array3d(surface)      # (w,h,3)
-        arr = np.transpose(arr, (1, 0, 2))           # -> (h,w,3)
+        arr = pygame.surfarray.array3d(surface)      
+        arr = np.transpose(arr, (1, 0, 2))           
         interp = {
             "nearest":  cv2.INTER_NEAREST,
             "bilinear": cv2.INTER_LINEAR,
             "bicubic":  cv2.INTER_CUBIC
         }[method]
         resized = cv2.resize(arr, new_size, interpolation=interp)
-        resized = np.transpose(resized, (1, 0, 2))   # -> (w,h,3)
+        resized = np.transpose(resized, (1, 0, 2))   
         return pygame.surfarray.make_surface(resized)
 
     return pygame.transform.smoothscale(surface, new_size)
