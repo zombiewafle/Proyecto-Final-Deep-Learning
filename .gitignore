@@ -172,3 +172,4 @@ cython_debug/
 # Ignore dataset images
 LR_64/
 HR_128/
+HR/
