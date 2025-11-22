@@ -118,7 +118,7 @@ class AppSR:
         print(f"[SR] Usando dispositivo: {self.sr_device}")
         torch.backends.cudnn.benchmark = True
 
-        self.sr_model = Generator(n_residual_blocks=8).to(self.sr_device)
+        self.sr_model = Generator(n_residual_blocks=2).to(self.sr_device)
 
         
         if "__file__" in globals():
@@ -129,10 +129,10 @@ class AppSR:
 
         print(f"[SR] project_root = {project_root}")
 
-        model_path = project_root / "models" / "generator_epoch_3.pth"
+        model_path = project_root / "models" / "generator_epoch_50.pth"
         print(f"[SR] Cargando modelo desde: {model_path}")
 
-        model_path = project_root / "models"/ "generator_epoch_3.pth"
+        model_path = project_root / "models"/ "generator_epoch_50.pth"
 
 
         state_dict = torch.load(model_path, map_location=self.sr_device)
